@@ -1,72 +1,104 @@
+
 Prerequisites:
 
-1. EC2 instance (t2.micro)  with Linux opertating system installed setup and running
-2. Created new key pair and downled teh .pem file
-3. Under EC2 security groups add a new inbound rule (TCP) with port 5000 and source as 0.0.0.0/0 (or u can give public IP of EC2 to retrict access only to EC2)
+1. EC2 instance (t2.micro)  with Linux opertating system installed setup and running in us-east-1
+2. Under EC2 security groups add a new inbound rule (TCP) with port 5000 and source as 0.0.0.0/0 (or u can give public IP of EC2 to retrict access only to EC2)
 
-ecommerce-key.pem -- Name of .pem file
-54.174.193.155 -- public IP address of teh EC2 machine
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+#!/bin/bash
 
-Steps:
+LOG_FILE="/home/ec2-user/user-data.log"
 
-1. open command prompt and connect to the EC2 instance . Navigate to teh location in local whre teh pem file is present and execute
-    ssh -i ecommerce-key.pem ec2-user@54.174.193.155
+echo "User data script started at: $(date)" | tee -a $LOG_FILE
 
-2. Update teh operating system 
-    sudo yum update -y
+# Prevent cloud-init from blocking re-runs
+sudo touch /etc/cloud/cloud-init.disabled
 
-3. Install python
-    sudo yum install python3 -y
+# Update system packages
+echo "Updating system packages..." | tee -a $LOG_FILE
+sudo yum update -y
 
-4. Install pip
-    sudo yum install python3-pip -y
+# Install necessary dependencies
+install_package() {
+    if ! rpm -q "$1" &>/dev/null; then
+        echo "Installing $1..." | tee -a $LOG_FILE
+        sudo yum install -y "$1"
+    else
+        echo "$1 is already installed." | tee -a $LOG_FILE
+    fi
+}
 
-5. Install nginx (as we need a server to run ou application)
-    sudo yum install nginx -y
+install_package telnet
+install_package python3
+install_package python3-pip
+install_package git
 
-6.  Start nginx
-    sudo systemctl start nginx
+# Switch to ec2-user
+sudo -i -u ec2-user bash << 'EOF'
 
-6.  enable nginx
-    sudo systemctl enable nginx
+LOG_FILE="/home/ec2-user/user-data.log"
+PROJECT_DIR="/home/ec2-user/PythonEcommerceSite-Dessertation"
+VENV_DIR="$PROJECT_DIR/venv"
 
-7.  Install git
-    sudo yum install git -y
+echo "Switching to ec2-user..." | tee -a $LOG_FILE
+cd /home/ec2-user
 
-8.  Clone git repo or pull latest from repo 
+# Clone or update the repository
+if [ ! -d "$PROJECT_DIR" ]; then
+    echo "Cloning repository..." | tee -a $LOG_FILE
     git clone https://github.com/Manisha-Ganji/PythonEcommerceSite-Dessertation
+else
+    echo "Updating repository..." | tee -a $LOG_FILE
+    cd "$PROJECT_DIR"
+    git pull origin main
+    cd ..
+fi
 
-9.  Install virtual env for python
+# Install virtualenv if not installed
+if ! command -v virtualenv &>/dev/null; then
+    echo "Installing virtualenv..." | tee -a $LOG_FILE
     pip3 install virtualenv
+else
+    echo "virtualenv is already installed." | tee -a $LOG_FILE
+fi
 
-10.  Create new virtual env
+# Set up virtual environment
+echo "Setting up Python virtual environment..." | tee -a $LOG_FILE
+cd "$PROJECT_DIR"
+if [ ! -d "$VENV_DIR" ]; then
     python3 -m venv venv
+fi
+source venv/bin/activate
 
-11.  activate virtual env
-    source venv/bin/activate
+# Install project dependencies
+echo "Installing Python dependencies..." | tee -a $LOG_FILE
+pip install --upgrade pip
+pip install -r requirements.txt
 
-12.  install all requiremnets needed for application
-    pip install -r requirements.txt
+EOF
 
-13.  navigate to folder where flask application is spresent
-     cd src
+# Create systemd service file for Flask
+echo "Creating systemd service for Flask..." | tee -a $LOG_FILE
+cat <<EOL | sudo tee /etc/systemd/system/flask-app.service
+[Unit]
+Description=Flask App
+After=network.target
 
-14.  set flask env variable flask_app wit name of application
-    export FLASK_APP=eCommerceApp.py
-  
-15.  run bvelow command to start application
-    flask run --host=0.0.0.0 --port=5000
+[Service]
+User=ec2-user
+WorkingDirectory=/home/ec2-user/PythonEcommerceSite-Dessertation/src
+ExecStart=/home/ec2-user/PythonEcommerceSite-Dessertation/venv/bin/python -m flask run --host=0.0.0.0 --port=5000
+Restart=always
+Environment="FLASK_APP=eCommerceApp.py"
+Environment="FLASK_ENV=development"
 
-16.  A list of urls will be displayed similar to below , use them in browser to view the application
-     http://54.174.193.155:5000
+[Install]
+WantedBy=multi-user.target
+EOL
 
-supporting Commands:
+# Reload systemd, enable and start the service
+sudo systemctl daemon-reload
+sudo systemctl enable flask-app
+sudo systemctl restart flask-app
 
-1. show if any process is using port 5000. 
-    sudo lsof -i :5000
-
-2. List the Flask processes:
-    ps aux | grep flask
-
-3. If you see a process using it, stop it
-    sudo kill <PID>
+echo "User data script completed at: $(date)" | tee -a $LOG_FILE
