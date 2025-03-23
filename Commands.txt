@@ -33,6 +33,19 @@ install_package python3
 install_package python3-pip
 install_package git
 
+# Set environment variables (persisting in /etc/environment)
+echo "Setting environment variables..." | tee -a $LOG_FILE
+cat <<EOL | sudo tee -a /etc/environment
+export DB_HOST="ecommappdb-primary.cp8u60euuktu.us-east-1.rds.amazonaws.com"
+export DB_USER="postgres"
+export DB_PASSWORD="SanMan2020"
+export DB_NAME="ecommappdb-primary"
+export S3_BUCKET_NAME="ecommerce-product-images-primary"
+EOL
+
+# Reload environment variables
+source /etc/environment
+
 # Switch to ec2-user
 sudo -i -u ec2-user bash << 'EOF'
 
@@ -91,6 +104,11 @@ ExecStart=/home/ec2-user/PythonEcommerceSite-Dessertation/venv/bin/python -m fla
 Restart=always
 Environment="FLASK_APP=eCommerceApp.py"
 Environment="FLASK_ENV=development"
+Environment="DB_HOST=ecommappdb-primary.cp8u60euuktu.us-east-1.rds.amazonaws.com"
+Environment="DB_USER=postgres"
+Environment="DB_PASSWORD=SanMan2020"
+Environment="DB_NAME=ecommappdb-primary"
+Environment="S3_BUCKET_NAME=ecommerce-product-images-primary"
 
 [Install]
 WantedBy=multi-user.target
