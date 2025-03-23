@@ -8,6 +8,8 @@ Prerequisites:
 #!/bin/bash
 
 LOG_FILE="/home/ec2-user/user-data.log"
+sudo chown ec2-user:ec2-user /home/ec2-user/user-data.log
+sudo chmod 664 /home/ec2-user/user-data.log
 
 echo "User data script started at: $(date)" | tee -a $LOG_FILE
 
@@ -36,10 +38,10 @@ install_package git
 # Set environment variables (persisting in /etc/environment)
 echo "Setting environment variables..." | tee -a $LOG_FILE
 cat <<EOL | sudo tee -a /etc/environment
-export DB_HOST="ecommappdb-primary.cp8u60euuktu.us-east-1.rds.amazonaws.com"
+export DB_HOST="ecommappdbprimary.cp8u60euuktu.us-east-1.rds.amazonaws.com"
 export DB_USER="postgres"
 export DB_PASSWORD="SanMan2020"
-export DB_NAME="ecommappdb-primary"
+export DB_NAME="ecommappdbprimary"
 export S3_BUCKET_NAME="ecommerce-product-images-primary"
 EOL
 
@@ -63,7 +65,12 @@ if [ ! -d "$PROJECT_DIR" ]; then
 else
     echo "Updating repository..." | tee -a $LOG_FILE
     cd "$PROJECT_DIR"
-    git pull origin main
+    git reset --hard
+    git checkout main
+    git fetch --all
+    git pull origin main --force
+    
+    cd ..
     cd ..
 fi
 
@@ -104,10 +111,10 @@ ExecStart=/home/ec2-user/PythonEcommerceSite-Dessertation/venv/bin/python -m fla
 Restart=always
 Environment="FLASK_APP=eCommerceApp.py"
 Environment="FLASK_ENV=development"
-Environment="DB_HOST=ecommappdb-primary.cp8u60euuktu.us-east-1.rds.amazonaws.com"
+Environment="DB_HOST=ecommappdbprimary.cp8u60euuktu.us-east-1.rds.amazonaws.com"
 Environment="DB_USER=postgres"
 Environment="DB_PASSWORD=SanMan2020"
-Environment="DB_NAME=ecommappdb-primary"
+Environment="DB_NAME=ecommappdbprimary"
 Environment="S3_BUCKET_NAME=ecommerce-product-images-primary"
 
 [Install]

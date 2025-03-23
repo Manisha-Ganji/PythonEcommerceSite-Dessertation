@@ -7,11 +7,17 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Set secret key for session
 
 # Database connection details (you should replace these with environment variables or config management)
-db_host = os.getenv('DB_HOST')
-db_user = os.getenv('DB_USER')
-db_password = os.getenv('DB_PASSWORD')
-db_name = os.getenv('DB_NAME')
-s3_bucket_name = os.getenv('S3_BUCKET_NAME')
+# db_host = os.getenv('DB_HOST')
+# db_user = os.getenv('DB_USER')
+# db_password = os.getenv('DB_PASSWORD')
+# db_name = os.getenv('DB_NAME')
+# s3_bucket_name = os.getenv('S3_BUCKET_NAME')
+
+db_host = "ecommappdbprimary.cp8u60euuktu.us-east-1.rds.amazonaws.com"
+db_user = "postgres"
+db_password = "SanMan2020"
+db_name = "ecommappdbprimary"
+s3_bucket_name = "ecommerce-product-images-primary"
 
 # Connect to the RDS database
 def connect_db():
