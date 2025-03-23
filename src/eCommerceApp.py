@@ -21,6 +21,7 @@ s3_bucket_name = "ecommerce-product-images-primary"
 
 # Connect to the RDS database
 def connect_db():
+        print(f"Connecting to DB: host={db_host}, dbname={db_name}, user={db_user}")  # Debugging
         return psycopg2.connect(
         host=db_host,
         user=db_user,
