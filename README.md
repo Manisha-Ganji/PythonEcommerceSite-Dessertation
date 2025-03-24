@@ -1,2 +1,1 @@
-# PythonEcommerceSite-Dessertation
-This is a basic e-commerce website designed to be hosted on AWS EC2
+This project makes use of an e-commerce web application to implement an end to end DR setup. This is a Flask-based online store that allows users to browse products, add them to a cart, and proceed to checkout. It integrates with AWS services like RDS (PostgreSQL) and S3 for storing product images.

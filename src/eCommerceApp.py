@@ -34,7 +34,7 @@ def connect_db():
 def home():
     conn = connect_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, name, price FROM products")
+    cursor.execute("SELECT id, name, price,image_name FROM products")
     products = cursor.fetchall()
     cursor.close()
     conn.close()
