@@ -114,7 +114,7 @@ Environment="FLASK_ENV=development"
 Environment="DB_HOST=ecommappdbprimary.cp8u60euuktu.us-east-1.rds.amazonaws.com"
 Environment="DB_USER=postgres"
 Environment="DB_PASSWORD=SanMan2020"
-Environment="DB_NAME=ecommappdbprimary"
+Environment="DB_NAME=postgres"
 Environment="S3_BUCKET_NAME=ecommerce-product-images-primary"
 
 [Install]
