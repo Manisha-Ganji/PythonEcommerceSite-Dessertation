@@ -24,7 +24,7 @@ def connect_db():
         password="SanMan2020",
         dbname="postgres"
     )
-     except psycopg2.Error as e:
+    except psycopg2.Error as e:
         logging.error(f"Error connecting to database: {e}")
         raise e
 
