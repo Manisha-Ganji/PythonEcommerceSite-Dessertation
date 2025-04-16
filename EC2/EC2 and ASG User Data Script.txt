@@ -1,9 +1,8 @@
 #!/bin/bash
-set -e
 
 LOG_FILE="/home/ec2-user/user-data.log"
-sudo chown ec2-user:ec2-user $LOG_FILE
-sudo chmod 664 $LOG_FILE
+sudo chown ec2-user:ec2-user /home/ec2-user/user-data.log
+sudo chmod 664 /home/ec2-user/user-data.log
 
 echo "User data script started at: $(date)" | tee -a $LOG_FILE
 
@@ -29,53 +28,49 @@ install_package python3
 install_package python3-pip
 install_package git
 
-# Set environment variables for systemd
-Database_HOST='ecommappdbprimary.cp8u60euuktu.us-east-1.rds.amazonaws.com'
-Database_USER='postgres'
-Database_PASSWORD='SanMan2020'
-Database_NAME='postgres'
+# Set environment variables for the Flask app (database credentials)
+echo "Setting environment variables for Flask app..." | tee -a $LOG_FILE
+echo "export Database_HOST='ecommappdbprimary.cp8u60euuktu.us-east-1.rds.amazonaws.com'" | sudo tee -a /etc/profile
+echo "export Database_USER='postgres'" | sudo tee -a /etc/profile
+echo "export Database_PASSWORD='SanMan2020'" | sudo tee -a /etc/profile
+echo "export Database_NAME='postgres'" | sudo tee -a /etc/profile
 
 # Switch to ec2-user
-sudo -i -u ec2-user bash << EOF
+sudo -i -u ec2-user bash << 'EOF'
 
 LOG_FILE="/home/ec2-user/user-data.log"
 PROJECT_DIR="/home/ec2-user/PythonEcommerceSite-Dessertation"
-VENV_DIR="\$PROJECT_DIR/venv"
+VENV_DIR="$PROJECT_DIR/venv"
 
-echo "Switching to ec2-user..." | tee -a \$LOG_FILE
+echo "Switching to ec2-user..." | tee -a $LOG_FILE
 cd /home/ec2-user
 
-# Clone or update the repository
-if [ ! -d "\$PROJECT_DIR/.git" ]; then
-    echo "Cloning repository..." | tee -a \$LOG_FILE
-    git clone https://github.com/Manisha-Ganji/PythonEcommerceSite-Dessertation
-else
-    echo "Pulling latest changes from GitHub..." | tee -a \$LOG_FILE
-    cd "\$PROJECT_DIR"
-    git reset --hard HEAD
-    git clean -fd
-    git pull origin main
-    cd ..
-fi
+# Always remove and freshly clone the repo
+echo "Removing old project directory if it exists..." | tee -a $LOG_FILE
+rm -rf "$PROJECT_DIR"
+
+echo "Cloning repository fresh..." | tee -a $LOG_FILE
+git clone https://github.com/Manisha-Ganji/PythonEcommerceSite-Dessertation
+
 
 # Install virtualenv if not installed
 if ! command -v virtualenv &>/dev/null; then
-    echo "Installing virtualenv..." | tee -a \$LOG_FILE
+    echo "Installing virtualenv..." | tee -a $LOG_FILE
     pip3 install virtualenv
 else
-    echo "virtualenv is already installed." | tee -a \$LOG_FILE
+    echo "virtualenv is already installed." | tee -a $LOG_FILE
 fi
 
-# Set up Python virtual environment
-echo "Setting up Python virtual environment..." | tee -a \$LOG_FILE
-cd "\$PROJECT_DIR"
-if [ ! -d "\$VENV_DIR" ]; then
+# Set up virtual environment
+echo "Setting up Python virtual environment..." | tee -a $LOG_FILE
+cd "$PROJECT_DIR"
+if [ ! -d "$VENV_DIR" ]; then
     python3 -m venv venv
 fi
 source venv/bin/activate
 
 # Install project dependencies
-echo "Installing Python dependencies..." | tee -a \$LOG_FILE
+echo "Installing Python dependencies..." | tee -a $LOG_FILE
 pip install --upgrade pip
 pip install -r requirements.txt
 
@@ -93,10 +88,10 @@ User=ec2-user
 WorkingDirectory=/home/ec2-user/PythonEcommerceSite-Dessertation/src
 Environment="FLASK_APP=eCommerceApp.py"
 Environment="FLASK_ENV=development"
-Environment="Database_HOST=${Database_HOST}"
-Environment="Database_USER=${Database_USER}"
-Environment="Database_PASSWORD=${Database_PASSWORD}"
-Environment="Database_NAME=${Database_NAME}"
+Environment="Database_HOST=ecommappdbprimary.cp8u60euuktu.us-east-1.rds.amazonaws.com"
+Environment="Database_USER=postgres"
+Environment="Database_PASSWORD=SanMan2020"
+Environment="Database_NAME=postgres"
 ExecStart=/home/ec2-user/PythonEcommerceSite-Dessertation/venv/bin/python -m flask run --host=0.0.0.0 --port=5000
 Restart=always
 
