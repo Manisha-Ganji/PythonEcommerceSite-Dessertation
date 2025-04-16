@@ -16,7 +16,7 @@ app.secret_key = os.urandom(24)  # Set secret key for session
 db_host = "ecommappdbprimary.cp8u60euuktu.us-east-1.rds.amazonaws.com"
 db_user = "postgres"
 db_password = "SanMan2020"
-db_name = "ecommappdbprimary"
+db_name = "postgres"
 s3_bucket_name = "ecommerce-product-images-primary"
 
 # Connect to the RDS database
