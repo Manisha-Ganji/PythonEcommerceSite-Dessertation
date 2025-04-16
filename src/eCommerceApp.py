@@ -98,13 +98,13 @@ def submit_order():
     return redirect(url_for('home'))  # Redirect to home after order submission
 
 # Route to show product images from S3
-@app.route('/product_image/<string:image_name>')
-def product_image(image_name):
-    s3 = boto3.client('s3')
-    file_url = s3.generate_presigned_url('get_object',
-                                        Params={'Bucket': s3_bucket_name, 'Key': image_name},
-                                        ExpiresIn=3600)  # 1 hour expiration
-    return redirect(file_url)
+# @app.route('/product_image/<string:image_name>')
+# def product_image(image_name):
+#     s3 = boto3.client('s3')
+#     file_url = s3.generate_presigned_url('get_object',
+#                                         Params={'Bucket': s3_bucket_name, 'Key': image_name},
+#                                         ExpiresIn=3600)  # 1 hour expiration
+#     return redirect(file_url)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=80)
