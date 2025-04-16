@@ -64,7 +64,7 @@ def add_to_cart(product_id):
 def checkout():
     # Get the cart from the session
     cart = session.get('cart', [])
-    total_price = sum(item['price'] for item in cart)
+    total_price = sum(float(item['price']) for item in cart)
     
     return render_template('checkout.html', cart=cart, total_price=total_price)
 
