@@ -15,15 +15,25 @@ logging.basicConfig(level=logging.INFO)
 app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))  # Secure key from environment or fallback to random
 s3_bucket_name = "ecommerce-product-images-primary"
 
+# Database connection parameters from environment variables
+DB_HOST = os.environ.get('Database_HOST')
+DB_USER = os.environ.get('Database_USER')
+DB_PASSWORD = os.environ.get('Database_PASSWORD')
+DB_NAME = os.environ.get('Database_NAME')
+
+
 # Connect to the RDS database
 def connect_db():
     try:
-        return psycopg2.connect(
-            host="ecommappdbprimary.cp8u60euuktu.us-east-1.rds.amazonaws.com",
-            user="postgres",
-            password="SanMan2020",
-            dbname="postgres"
+        logging.info("Connecting to the database...")
+        conn = psycopg2.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            dbname=DB_NAME
         )
+        logging.info("Database connection successful.")
+        return conn
     except psycopg2.Error as e:
         logging.error(f"Error connecting to database: {e}")
         raise e

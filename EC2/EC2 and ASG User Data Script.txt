@@ -1,10 +1,3 @@
-
-Prerequisites:
-
-1. EC2 instance (t2.micro)  with Linux opertating system installed setup and running in us-east-1
-2. Under EC2 security groups add a new inbound rule (TCP) with port 5000 and source as 0.0.0.0/0 (or u can give public IP of EC2 to retrict access only to EC2)
-
---------------------------------------------------------------------------------------------------------------------------------------------------------------
 #!/bin/bash
 
 LOG_FILE="/home/ec2-user/user-data.log"
@@ -35,18 +28,15 @@ install_package python3
 install_package python3-pip
 install_package git
 
-# Set environment variables (persisting in /etc/environment)
-echo "Setting environment variables..." | tee -a $LOG_FILE
-cat <<EOL | sudo tee -a /etc/environment
-export DB_HOST="ecommappdbprimary.cp8u60euuktu.us-east-1.rds.amazonaws.com"
-export DB_USER="postgres"
-export DB_PASSWORD="SanMan2020"
-export DB_NAME="ecommappdbprimary"
-export S3_BUCKET_NAME="ecommerce-product-images-primary"
-EOL
-
 # Reload environment variables
 source /etc/environment
+
+# Set environment variables for the Flask app (database credentials)
+echo "Setting environment variables for Flask app..." | tee -a $LOG_FILE
+echo "export Database_HOST='ecommappdbprimary.cp8u60euuktu.us-east-1.rds.amazonaws.com'" | sudo tee -a /etc/profile
+echo "export Database_USER='postgres'" | sudo tee -a /etc/profile
+echo "export Database_PASSWORD='SanMan2020'" | sudo tee -a /etc/profile
+echo "export Database_NAME='postgres'" | sudo tee -a /etc/profile
 
 # Switch to ec2-user
 sudo -i -u ec2-user bash << 'EOF'
@@ -65,13 +55,9 @@ if [ ! -d "$PROJECT_DIR" ]; then
 else
     echo "Updating repository..." | tee -a $LOG_FILE
     cd "$PROJECT_DIR"
-    git reset --hard
-    git checkout main
-    git fetch --all
-    git pull origin main --force
-    
-    cd ..
-    cd ..
+    git fetch origin main
+    git reset --hard origin/main
+    cd .. 
 fi
 
 # Install virtualenv if not installed
@@ -107,15 +93,14 @@ After=network.target
 [Service]
 User=ec2-user
 WorkingDirectory=/home/ec2-user/PythonEcommerceSite-Dessertation/src
-ExecStart=/home/ec2-user/PythonEcommerceSite-Dessertation/venv/bin/python -m flask run --host=0.0.0.0 --port=5000
-Restart=always
 Environment="FLASK_APP=eCommerceApp.py"
 Environment="FLASK_ENV=development"
-Environment="DB_HOST=ecommappdbprimary.cp8u60euuktu.us-east-1.rds.amazonaws.com"
-Environment="DB_USER=postgres"
-Environment="DB_PASSWORD=SanMan2020"
-Environment="DB_NAME=postgres"
-Environment="S3_BUCKET_NAME=ecommerce-product-images-primary"
+Environment="Database_HOST=${Database_HOST}"
+Environment="Database_USER=${Database_USER}"
+Environment="Database_PASSWORD=${Database_PASSWORD}"
+Environment="Database_NAME=${Database_NAME}"
+ExecStart=/home/ec2-user/PythonEcommerceSite-Dessertation/venv/bin/python -m flask run --host=0.0.0.0 --port=5000
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
