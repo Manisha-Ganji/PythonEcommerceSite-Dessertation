@@ -37,16 +37,16 @@
                         {% for item in cart %}
                             <tr>
                                 <td>{{ item['name'] }}</td>
-                                <td>${{ "%.2f"|format(item['price']) }}</td>
+                                <td>${{ "%.2f"|format(item['price']|float) }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
                 </table>
-                <p class="text-end fw-bold">Total Price: ${{ "%.2f"|format(total_price) }}</p>
+                <p class="text-end fw-bold">Total Price: ${{ "%.2f"|format(total_price|float) }}</p>
                 <form action="{{ url_for('submit_order') }}" method="POST">
                     <div class="mb-3">
                         <label for="customer_name" class="form-label">Customer Name:</label>
-                        <input type="text" id="customer_name" name="customer_name" class="form-control" required>
+                        <input type="text" id="customer_name" name="customer_name" class="form-control" required placeholder="Enter your full name">
                     </div>
                     <input type="hidden" name="total_price" value="{{ total_price }}">
                     <button type="submit" class="btn btn-primary w-100">
@@ -56,6 +56,9 @@
             {% else %}
                 <p class="text-center text-muted">Your cart is empty!</p>
             {% endif %}
+            <a href="{{ url_for('home') }}" class="btn btn-secondary w-100 mt-3">
+                <i class="fas fa-arrow-left"></i> Back to Shopping
+            </a>
         </div>
     </main>
 
