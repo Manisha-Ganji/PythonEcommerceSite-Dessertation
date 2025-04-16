@@ -9,7 +9,16 @@ from datetime import timedelta
 app = Flask(__name__)
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+LOG_FILE = '/home/ec2-user/flask-app.log'
+logging.basicConfig(
+    level=logging.INFO,
+     format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler()  # still sends to console/systemd
+    ]
+    )
+
 
 # Secret key for session management (ensure this is secure in production)
 app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))  # Secure key from environment or fallback to random
