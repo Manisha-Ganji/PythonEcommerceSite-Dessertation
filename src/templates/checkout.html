@@ -30,14 +30,18 @@
                     <thead class="table-dark">
                         <tr>
                             <th>Product Name</th>
-                            <th>Price</th>
+                            <th>Quantity</th>
+                            <th>Price (per item)</th>
+                            <th>Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in cart %}
                             <tr>
                                 <td>{{ item['name'] }}</td>
-                                <td>${{ "%.2f"|format(item['price']|float) }}</td>
+                                <td>{{ item['quantity'] }}</td>
+                                <td>${{ "%.2f"|format(item['price'] / item['quantity']) }}</td> <!-- Price per item -->
+                                <td>${{ "%.2f"|format(item['price']) }}</td> <!-- Total price for this product -->
                             </tr>
                         {% endfor %}
                     </tbody>

@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session
-import psycopg2 
+import psycopg2
 import os
 import boto3
 import logging
@@ -19,11 +19,11 @@ s3_bucket_name = "ecommerce-product-images-primary"
 def connect_db():
     try:
         return psycopg2.connect(
-        host="ecommappdbprimary.cp8u60euuktu.us-east-1.rds.amazonaws.com",
-        user="postgres",
-        password="SanMan2020",
-        dbname="postgres"
-    )
+            host="ecommappdbprimary.cp8u60euuktu.us-east-1.rds.amazonaws.com",
+            user="postgres",
+            password="SanMan2020",
+            dbname="postgres"
+        )
     except psycopg2.Error as e:
         logging.error(f"Error connecting to database: {e}")
         raise e
@@ -33,7 +33,7 @@ def connect_db():
 def home():
     conn = connect_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, name, price,image_name FROM products")
+    cursor.execute("SELECT id, name, price, image_name FROM products")
     products = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -53,21 +53,26 @@ def add_to_cart(product_id):
     product = cursor.fetchone()
     cursor.close()
     conn.close()
-    
+
     if product:
         if 'cart' not in session:
             session['cart'] = []
 
-        try:
-            price = float(product[2])
-        except ValueError:
-            price = 0.0  # Default value if price is invalid
-        
-        session['cart'].append({
-            'id': product[0],
-            'name': product[1],
-            'price': price
-        })
+        # Check if product is already in the cart
+        product_in_cart = next((item for item in session['cart'] if item['id'] == product[0]), None)
+
+        if product_in_cart:
+            # If the product already exists in the cart, increment its quantity and update total price
+            product_in_cart['quantity'] += 1
+            product_in_cart['price'] += float(product[2])  # Add the price again to update the total
+        else:
+            # If the product is not in the cart, add it with quantity 1
+            session['cart'].append({
+                'id': product[0],
+                'name': product[1],
+                'price': float(product[2]),
+                'quantity': 1
+            })
 
         session.modified = True
 
@@ -77,7 +82,7 @@ def add_to_cart(product_id):
 
         logging.info(f"Added {product[1]} to cart.")
         return redirect(url_for('home'))
-    
+
     logging.error(f"Product with ID {product_id} not found.")
     return "Product not found!", 404
 
@@ -85,13 +90,13 @@ def add_to_cart(product_id):
 @app.route('/checkout')
 def checkout():
     cart = session.get('cart', [])
-    
+
     if not cart:
         return render_template('empty_cart.html')  # Or redirect to a message page
 
     total_price = sum(float(item['price']) for item in cart)
     logging.info(f"Cart total price: ${total_price:.2f}")
-    
+
     return render_template('checkout.html', cart=cart, total_price=total_price)
 
 # Order submission (simple demo)
@@ -103,7 +108,7 @@ def submit_order():
     if not customer_name:
         logging.error("Customer name is missing.")
         return redirect(url_for('checkout'))  # Redirect or show an error message
-    
+
     if total_price <= 0:
         logging.error(f"Invalid total price: {total_price}")
         return redirect(url_for('checkout'))  # Redirect or show an error message
