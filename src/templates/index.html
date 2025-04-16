@@ -70,10 +70,10 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            if (just_added)
+            {% if just_added %}
             var cartModal = new bootstrap.Modal(document.getElementById('cartModal'));
             cartModal.show();
-            endif
+            {% endif %}
         });
     </script>
 
