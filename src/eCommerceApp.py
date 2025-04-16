@@ -37,7 +37,12 @@ def home():
     products = cursor.fetchall()
     cursor.close()
     conn.close()
-    return render_template('index.html', products=products)
+
+    # Check if a product was recently added to the cart
+    just_added = session.pop('just_added', False)
+    last_product = session.pop('last_product', None)
+
+    return render_template('index.html', products=products, just_added=just_added, last_product=last_product)
 
 # Add to cart
 @app.route('/add_to_cart/<int:product_id>', methods=['POST'])
@@ -65,6 +70,11 @@ def add_to_cart(product_id):
         })
 
         session.modified = True
+
+        # Store session variables for the modal
+        session['just_added'] = True
+        session['last_product'] = product[1]
+
         logging.info(f"Added {product[1]} to cart.")
         return redirect(url_for('home'))
     
