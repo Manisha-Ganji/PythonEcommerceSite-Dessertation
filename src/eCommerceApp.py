@@ -3,6 +3,7 @@ import psycopg2
 import os
 import boto3
 import logging
+from urllib.parse import urlparse
 from datetime import timedelta
 
 # Initialize the Flask app
@@ -22,14 +23,18 @@ logging.basicConfig(
 
 # Secret key for session management (ensure this is secure in production)
 app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))  # Secure key from environment or fallback to random
-s3_bucket_name = "ecommerce-product-images-primary"
 
+ssm = boto3.client('ssm', region_name='us-east-1')  # or use boto3.Session if cross-region
+dbconn = ssm.get_parameter(Name='/eCommApp/db/active')['Parameter']['Value']
+s3_bucket_name = ssm.get_parameter(Name='/eCommApp/s3/active')['Parameter']['Value']
+
+parsed = urlparse(dbconn)
 # Database connection parameters from environment variables
-DB_HOST = os.environ.get('Database_HOST')
-DB_USER = os.environ.get('Database_USER')
-DB_PASSWORD = os.environ.get('Database_PASSWORD')
-DB_NAME = os.environ.get('Database_NAME')
-
+DB_HOST = parsed.hostname
+DB_USER = parsed.username
+DB_PASSWORD = parsed.password
+DB_NAME = parsed.path.lstrip('/')
+DB_PORT= parsed.port
 
 # Connect to the RDS database
 def connect_db():
@@ -37,6 +42,7 @@ def connect_db():
         logging.info("Connecting to the database...")
         conn = psycopg2.connect(
             host=DB_HOST,
+            port = DB_PORT,
             user=DB_USER,
             password=DB_PASSWORD,
             dbname=DB_NAME

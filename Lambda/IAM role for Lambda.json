@@ -1,0 +1,19 @@
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "Statement1",
+			"Effect": "Allow",
+            "Action": [
+              "s3:GetObject",
+              "rds:DescribeDBInstances",
+              "ec2:DescribeInstanceStatus",
+              "autoscaling:DescribeAutoScalingGroups",
+              "ssm:PutParameter",
+              "ssm:GetParameter",
+              "route53:ChangeResourceRecordSets"
+            ],
+            "Resource": "*"
+		}
+	]
+}
