@@ -3,7 +3,6 @@ import psycopg2
 import os
 import boto3
 import logging
-from urllib.parse import urlparse
 from datetime import timedelta
 
 # Initialize the Flask app
@@ -28,13 +27,13 @@ ssm = boto3.client('ssm', region_name='us-east-1')  # or use boto3.Session if cr
 dbconn = ssm.get_parameter(Name='/eCommApp/db/active')['Parameter']['Value']
 s3_bucket_name = ssm.get_parameter(Name='/eCommApp/s3/active')['Parameter']['Value']
 
-parsed = urlparse(dbconn)
-# Database connection parameters from environment variables
-DB_HOST = parsed.hostname
-DB_USER = parsed.username
-DB_PASSWORD = parsed.password
-DB_NAME = parsed.path.lstrip('/')
-DB_PORT= parsed.port
+dbvalues = dbconn.split(',')
+
+DB_NAME = dbvalues[0]
+DB_USER = dbvalues[1]
+DB_PASSWORD = dbvalues[2]
+DB_HOST = dbvalues[3]
+DB_PORT= dbvalues[4]
 
 # Connect to the RDS database
 def connect_db():

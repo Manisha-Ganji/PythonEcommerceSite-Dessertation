@@ -1,7 +1,6 @@
 import boto3
 import logging
 import psycopg2
-from urllib.parse import urlparse
 from datetime import datetime
 
 # Initialize AWS clients
@@ -47,13 +46,13 @@ def lambda_handler(event, context):
 
 def is_postgres_healthy(conn_str):
     try:
-        parsed = urlparse(conn_str)
+        dbvalues = conn_str.split(',')
         conn = psycopg2.connect(
-            host=parsed.hostname,
-            port=parsed.port,
-            user=parsed.username,
-            password=parsed.password,
-            dbname=parsed.path.lstrip('/')
+            dbname = dbvalues[0]
+            user = dbvalues[1]
+            password = dbvalues[2]
+            host = dbvalues[3]
+            port= dbvalues[4]
         )
         conn.close()
         return True
