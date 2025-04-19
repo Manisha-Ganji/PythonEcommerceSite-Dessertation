@@ -21,18 +21,11 @@ logging.basicConfig(
     ]
     )
 
-
 # Secret key for session management (ensure this is secure in production)
 app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))  # Secure key from environment or fallback to random
 
-# AWS region of the EC2 instance (dynamically detect the region)
-session = botocore.session.get_session()
-ec2_region = session.get_config_variable('region')
-
-
-
 # Initialize the SSM client based on the current EC2 region
-ssm = boto3.client('ssm', region_name=ec2_region)
+ssm = boto3.client('ssm', region_name='us-west-1')
 
 # Fetch region-specific parameters from SSM
 dbconn = ssm.get_parameter(Name='/eCommApp/db/active')['Parameter']['Value']
