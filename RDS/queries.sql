@@ -18,3 +18,10 @@ CREATE TABLE orders (
     customer_name VARCHAR(255),
     total_price DECIMAL(10, 2)
 );
+
+
+--- for secondary DB
+INSERT INTO products (name, price, image_name) 
+VALUES ('Cloud Computing', 500.00, 'CloudComputing.jpg'),
+       ('Big Data', 650.00, 'BigData.jpg');
+	   

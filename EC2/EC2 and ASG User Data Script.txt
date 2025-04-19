@@ -1,84 +1,81 @@
 #!/bin/bash
 
 LOG_FILE="/home/ec2-user/user-data.log"
-sudo chown ec2-user:ec2-user /home/ec2-user/user-data.log
-sudo chmod 664 /home/ec2-user/user-data.log
+exec > >(tee -a $LOG_FILE|logger -t user-data -s 2>/dev/console) 2>&1
 
-echo "User data script started at: $(date)" | tee -a $LOG_FILE
+echo "User data script started at: $(date)"  | tee -a $LOG_FILE
 
-# Prevent cloud-init from blocking re-runs
+# Prevent cloud-init from blocking re-runs (optional)
 sudo touch /etc/cloud/cloud-init.disabled
 
 # Update system packages
-echo "Updating system packages..." | tee -a $LOG_FILE
+echo "Updating system packages..."
+sudo yum clean all
 sudo yum update -y
 
-# Install necessary dependencies
-install_package() {
-    if ! rpm -q "$1" &>/dev/null; then
-        echo "Installing $1..." | tee -a $LOG_FILE
-        sudo yum install -y "$1"
-    else
-        echo "$1 is already installed." | tee -a $LOG_FILE
-    fi
-}
+# Install essential packages
+sudo yum install -y git python3 python3-pip telnet
+sudo pip3 install virtualenv
 
-install_package telnet
-install_package python3
-install_package python3-pip
-install_package git
+# Create the startup script
+cat <<'EOF' > /home/ec2-user/run-flask-setup.sh
+#!/bin/bash
 
-# Set environment variables for the Flask app (database credentials)
-echo "Setting environment variables for Flask app..." | tee -a $LOG_FILE
-echo "export Database_HOST='ecommappdbprimary.cp8u60euuktu.us-east-1.rds.amazonaws.com'" | sudo tee -a /etc/profile
-echo "export Database_USER='postgres'" | sudo tee -a /etc/profile
-echo "export Database_PASSWORD='SanMan2020'" | sudo tee -a /etc/profile
-echo "export Database_NAME='postgres'" | sudo tee -a /etc/profile
+LOG_FILE="/home/ec2-user/startup-script.log"
+echo "Flask setup script run at $(date)" | tee -a $LOG_FILE
 
-# Switch to ec2-user
-sudo -i -u ec2-user bash << 'EOF'
-
-LOG_FILE="/home/ec2-user/user-data.log"
-PROJECT_DIR="/home/ec2-user/PythonEcommerceSite-Dessertation"
-VENV_DIR="$PROJECT_DIR/venv"
-
-echo "Switching to ec2-user..." | tee -a $LOG_FILE
 cd /home/ec2-user
 
-# Always remove and freshly clone the repo
-echo "Removing old project directory if it exists..." | tee -a $LOG_FILE
-rm -rf "$PROJECT_DIR"
 
-echo "Cloning repository fresh..." | tee -a $LOG_FILE
-git clone https://github.com/Manisha-Ganji/PythonEcommerceSite-Dessertation
+sudo rm -rf PythonEcommerceSite-Dessertation
+sudo chown -R ec2-user:ec2-user /home/ec2-user
 
+# Clone fresh repo
+echo "Cloning the latest repository..." | tee -a $LOG_FILE
+git clone https://github.com/Manisha-Ganji/PythonEcommerceSite-Dessertation || {
+    echo "Git clone failed" | tee -a $LOG_FILE
+    exit 1
+}
 
-# Install virtualenv if not installed
-if ! command -v virtualenv &>/dev/null; then
-    echo "Installing virtualenv..." | tee -a $LOG_FILE
-    pip3 install virtualenv
-else
-    echo "virtualenv is already installed." | tee -a $LOG_FILE
-fi
+cd PythonEcommerceSite-Dessertation
 
-# Set up virtual environment
-echo "Setting up Python virtual environment..." | tee -a $LOG_FILE
-cd "$PROJECT_DIR"
-if [ ! -d "$VENV_DIR" ]; then
-    python3 -m venv venv
-fi
+# Set up Python virtual environment
+
+python3 -m venv venv
 source venv/bin/activate
 
-# Install project dependencies
-echo "Installing Python dependencies..." | tee -a $LOG_FILE
+# Install Python dependencies
 pip install --upgrade pip
 pip install -r requirements.txt
 
+# Restart Flask systemd service
+sudo systemctl restart flask-app.service
 EOF
 
-# Create systemd service file for Flask
-echo "Creating systemd service for Flask..." | tee -a $LOG_FILE
-cat <<EOL | sudo tee /etc/systemd/system/flask-app.service
+# Make it executable
+chmod +x /home/ec2-user/run-flask-setup.sh
+chown ec2-user:ec2-user /home/ec2-user/run-flask-setup.sh
+
+# Create systemd service to run script at boot
+cat <<EOF | sudo tee /etc/systemd/system/flask-setup.service
+[Unit]
+Description=Run Flask Setup Script on Boot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/ec2-user/run-flask-setup.sh
+RemainAfterExit=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Create systemd service for the Flask app
+cat <<EOF | sudo tee /etc/systemd/system/flask-app.service
 [Unit]
 Description=Flask App
 After=network.target
@@ -88,20 +85,21 @@ User=ec2-user
 WorkingDirectory=/home/ec2-user/PythonEcommerceSite-Dessertation/src
 Environment="FLASK_APP=eCommerceApp.py"
 Environment="FLASK_ENV=development"
-Environment="Database_HOST=ecommappdbprimary.cp8u60euuktu.us-east-1.rds.amazonaws.com"
-Environment="Database_USER=postgres"
-Environment="Database_PASSWORD=SanMan2020"
-Environment="Database_NAME=postgres"
 ExecStart=/home/ec2-user/PythonEcommerceSite-Dessertation/venv/bin/python -m flask run --host=0.0.0.0 --port=5000
 Restart=always
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
-EOL
+EOF
 
-# Reload systemd, enable and start the service
+# Enable both services
 sudo systemctl daemon-reload
-sudo systemctl enable flask-app
-sudo systemctl restart flask-app
+sudo systemctl enable flask-setup.service
+sudo systemctl enable flask-app.service
 
-echo "User data script completed at: $(date)" | tee -a $LOG_FILE
+# Start setup script now (initial boot)
+sudo systemctl start flask-setup.service
+
+echo "User data script completed at: $(date)"
