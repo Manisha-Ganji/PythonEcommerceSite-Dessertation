@@ -4,6 +4,7 @@ import os
 import boto3
 import logging
 from datetime import timedelta
+import botocore.session
 import socket
 
 # Initialize the Flask app
@@ -25,7 +26,10 @@ logging.basicConfig(
 app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))  # Secure key from environment or fallback to random
 
 # AWS region of the EC2 instance (dynamically detect the region)
-ec2_region = boto3.client('ec2').meta.region_name  # Get EC2 region dynamically
+session = botocore.session.get_session()
+ec2_region = session.get_config_variable('region')
+
+
 
 # Initialize the SSM client based on the current EC2 region
 ssm = boto3.client('ssm', region_name=ec2_region)
