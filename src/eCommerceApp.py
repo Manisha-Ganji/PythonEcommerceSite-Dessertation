@@ -4,6 +4,7 @@ import os
 import boto3
 import logging
 from datetime import timedelta
+import socket
 
 # Initialize the Flask app
 app = Flask(__name__)
@@ -23,10 +24,17 @@ logging.basicConfig(
 # Secret key for session management (ensure this is secure in production)
 app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))  # Secure key from environment or fallback to random
 
-ssm = boto3.client('ssm', region_name='us-east-1')  # or use boto3.Session if cross-region
+# AWS region of the EC2 instance (dynamically detect the region)
+ec2_region = boto3.client('ec2').meta.region_name  # Get EC2 region dynamically
+
+# Initialize the SSM client based on the current EC2 region
+ssm = boto3.client('ssm', region_name=ec2_region)
+
+# Fetch region-specific parameters from SSM
 dbconn = ssm.get_parameter(Name='/eCommApp/db/active')['Parameter']['Value']
 s3_bucket_name = ssm.get_parameter(Name='/eCommApp/s3/active')['Parameter']['Value']
 
+# Parse RDS connection details
 dbvalues = dbconn.split(',')
 
 DB_NAME = dbvalues[0]
