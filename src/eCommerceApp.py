@@ -4,8 +4,7 @@ import os
 import boto3
 import logging
 from datetime import timedelta
-import botocore.session
-import socket
+import requests
 
 # Initialize the Flask app
 app = Flask(__name__)
@@ -23,6 +22,21 @@ logging.basicConfig(
 
 # Secret key for session management (ensure this is secure in production)
 app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))  # Secure key from environment or fallback to random
+
+def get_region():
+    try:
+        # First, get the availability zone (e.g., us-east-1a)
+        az_url = "http://169.254.169.254/latest/meta-data/placement/availability-zone"
+        az = requests.get(az_url, timeout=2).text
+        # Region is AZ minus the last character
+        region = az[:-1]
+        return region
+    except requests.RequestException as e:
+        print(f"Error fetching region: {e}")
+        return None
+    
+region = get_region()
+logging.info(f"Region: {region}")
 
 # Initialize the SSM client based on the current EC2 region
 ssm = boto3.client('ssm', region_name='us-west-1')
