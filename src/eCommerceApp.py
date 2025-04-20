@@ -25,14 +25,28 @@ app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))  # Secure key from
 
 def get_region():
     try:
-        # First, get the availability zone (e.g., us-east-1a)
-        az_url = "http://169.254.169.254/latest/meta-data/placement/availability-zone"
-        az = requests.get(az_url, timeout=2).text
-        # Region is AZ minus the last character
+        # Step 1: Get IMDSv2 token
+        token_response = requests.put(
+            "http://169.254.169.254/latest/api/token",
+            headers={"X-aws-ec2-metadata-token-ttl-seconds": "21600"},
+            timeout=2
+        )
+        token = token_response.text
+
+        # Step 2: Use token to fetch availability zone
+        az_response = requests.get(
+            "http://169.254.169.254/latest/meta-data/placement/availability-zone",
+            headers={"X-aws-ec2-metadata-token": token},
+            timeout=2
+        )
+        az = az_response.text
         region = az[:-1]
+
+        logging.info(f"Detected region from EC2 metadata: {region}")
         return region
+
     except requests.RequestException as e:
-        print(f"Error fetching region: {e}")
+        logging.error(f"Error fetching region from EC2 metadata: {e}")
         return None
     
 region = get_region()
