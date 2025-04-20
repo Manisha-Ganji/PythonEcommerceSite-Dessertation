@@ -53,7 +53,7 @@ region = get_region()
 logging.info(f"Region: {region}")
 
 # Initialize the SSM client based on the current EC2 region
-ssm = boto3.client('ssm', region_name='us-west-1')
+ssm = boto3.client('ssm', region_name=region)
 
 # Fetch region-specific parameters from SSM
 dbconn = ssm.get_parameter(Name='/eCommApp/db/active')['Parameter']['Value']
