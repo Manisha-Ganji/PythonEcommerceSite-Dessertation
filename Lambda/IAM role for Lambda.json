@@ -5,13 +5,15 @@
 			"Sid": "Statement1",
 			"Effect": "Allow",
             "Action": [
-              "s3:GetObject",
-              "rds:DescribeDBInstances",
-              "ec2:DescribeInstanceStatus",
-              "autoscaling:DescribeAutoScalingGroups",
-              "ssm:PutParameter",
-              "ssm:GetParameter",
-              "route53:ChangeResourceRecordSets"
+                "s3:ListBucket",
+                "rds:DescribeDBInstances",
+	              "ec2:DescribeInstances",
+                "ec2:DescribeInstanceStatus",
+                "autoscaling:DescribeAutoScalingGroups",
+                "route53:ChangeResourceRecordSets",
+	              "route53:ListResourceRecordSets",
+	              "elasticloadbalancing:DescribeLoadBalancers",
+                "elasticloadbalancing:DescribeTargetHealth"
             ],
             "Resource": "*"
 		}

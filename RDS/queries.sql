@@ -8,8 +8,10 @@ CREATE TABLE products (
 );
 
 INSERT INTO products (name, price, image_name) 
-VALUES ('Cloud Computing', 200.00, 'CloudComputing.jpg'),
-       ('Big Data', 150.00, 'BigData.jpg');
+VALUES ('Cloud Computing', 100.00, 'CloudComputing.jpg'),
+       ('Big Data', 150.00, 'BigData.jpg'),
+       ('Devops', 200.00, 'Devops.jpg'),
+       ('Computer Networking', 250.00, 'ComputerNetwork.jpg');
 	   
 CREATE SEQUENCE orders_id_seq;
 
@@ -19,9 +21,6 @@ CREATE TABLE orders (
     total_price DECIMAL(10, 2)
 );
 
-
---- for secondary DB
-INSERT INTO products (name, price, image_name) 
-VALUES ('Cloud Computing', 500.00, 'CloudComputing.jpg'),
-       ('Big Data', 650.00, 'BigData.jpg');
-	   
+-----------------Optional----------------
+Drop table products;
+Drop table orders;
