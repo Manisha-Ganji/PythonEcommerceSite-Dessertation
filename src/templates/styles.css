@@ -14,3 +14,8 @@ table th, table td {
 table th {
     background-color: #f4f4f4;
 }
+.card-img-top {
+    width: 100%;
+    height: 250px;
+    object-fit: cover; 
+}
