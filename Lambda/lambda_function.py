@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import boto3
 
 # --- REGION CONFIG ---
@@ -5,7 +6,7 @@ PRIMARY_REGION = 'us-east-1'
 SECONDARY_REGION = 'us-west-1'
 
 # --- DNS CONFIG ---
-PRIMARY_ALB_DNS = 'eCommAppLoadBalancer-443347861.us-east-1.elb.amazonaws.com'
+PRIMARY_ALB_DNS = 'eCommAppLoadBalancer-1629063426.us-east-1.elb.amazonaws.com'
 SECONDARY_ALB_DNS = 'eCommAppLoadBalancer-Secondary-2144717324.us-west-1.elb.amazonaws.com'
 HOSTED_ZONE_ID = 'Z00780922145L3VLDJ1AQ'
 RECORD_NAME = 'OnlineBookStore.ecommappdomains.com.'
@@ -14,13 +15,16 @@ RECORD_NAME = 'OnlineBookStore.ecommappdomains.com.'
 PRIMARY_RDS_IDENTIFIER = 'ecommappdbprimary'
 PRIMARY_ASG_NAME = 'ECommAppEC2ASG'
 PRIMARY_S3_NAME = 'ecommerce-product-images-primary'
-PRIMARY_ALB_ARN = 'arn:aws:elasticloadbalancing:us-east-1:343218219620:loadbalancer/app/eCommAppLoadBalancer/7559200c74993562'
+PRIMARY_ALB_ARN = 'arn:aws:elasticloadbalancing:us-east-1:343218219620:loadbalancer/app/eCommAppLoadBalancer/04a47aff26647f64'
 PRIMARY_TARGET_GROUP_ARN = 'arn:aws:elasticloadbalancing:us-east-1:343218219620:targetgroup/ECommAppALBtargetGrp/c36647b6f18d14db'
 
+# Store timestamps in memory (temporary - per Lambda run)
+failover_timestamp = None
 
 def lambda_handler(event, context):
-    print("🔁 Lambda triggered.")
+    global failover_timestamp
 
+    print("🔁 Lambda triggered.")
     current_target = get_current_alb_target()
     print(f"🔍 Current ALB target: {current_target}")
 
@@ -36,19 +40,27 @@ def lambda_handler(event, context):
         print("One or more primary services failed.")
         if SECONDARY_ALB_DNS.lower() not in current_target:
             update_route53(SECONDARY_ALB_DNS)
-            print("Route 53 switched to secondary ALB.")
+            failover_timestamp = datetime.now(timezone.utc)
+            print(f"Failover triggered at: {failover_timestamp.isoformat()}")
         else:
-            print("Already pointing to secondary ALB. No change needed.")
+            print("Already pointing to secondary ALB.")
     else:
         print("All primary services are healthy.")
         if PRIMARY_ALB_DNS.lower() not in current_target:
             update_route53(PRIMARY_ALB_DNS)
-            print("Route 53 switched back to primary ALB.")
+            recovery_time = datetime.now(timezone.utc)
+            print(f"Recovery triggered at: {recovery_time.isoformat()}")
+            if failover_timestamp:
+                downtime = (recovery_time - failover_timestamp).total_seconds()
+                print(f"Total failover duration: {downtime} seconds")
+            else:
+                print("Failover timestamp not found (was probably in a previous Lambda run).")
         else:
-            print("Already pointing to primary ALB. No change needed.")
+            print("Already pointing to primary ALB. No change.")
+
+
 
 # --- HEALTH CHECKS ---
-
 def check_rds(region):
     try:
         rds = boto3.client('rds', region_name=region)
@@ -65,7 +77,6 @@ def check_rds(region):
         print(f"RDS health check failed: {e}")
         return False
 
-
 def check_s3(region):
     try:
         s3 = boto3.client('s3', region_name=region)
@@ -73,7 +84,7 @@ def check_s3(region):
         
         # Check if the call was successful (no exception thrown) and bucket is accessible
         if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-            print(f"S3 health check passed:  response code {response['ResponseMetadata']['HTTPStatusCode']}")
+            print(f"S3 health check passed: response code {response['ResponseMetadata']['HTTPStatusCode']}")
             return True
         else:
             print(f"S3 health check failed: Unexpected response code {response['ResponseMetadata']['HTTPStatusCode']}")
@@ -102,7 +113,7 @@ def check_ec2(region):
                 print(f"EC2 instance {inst['InstanceId']} is {inst['InstanceState']['Name']}")
                 return False
             else:
-                print(f"EC2 instance {inst['InstanceId']} is  {inst['InstanceState']['Name']}.")
+                print(f"EC2 instance {inst['InstanceId']} is {inst['InstanceState']['Name']}.")
         return True
     except Exception as e:
         print(f"EC2 health check failed: {e}")
@@ -142,7 +153,6 @@ def check_alb(region):
         return False
 
 # --- ROUTE 53 LOGIC ---
-
 def get_current_alb_target():
     try:
         route53 = boto3.client('route53')
