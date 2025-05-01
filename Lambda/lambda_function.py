@@ -1,22 +1,23 @@
 from datetime import datetime, timezone
 import boto3
+import os
 
 # --- REGION CONFIG ---
 PRIMARY_REGION = 'us-east-1'
 SECONDARY_REGION = 'us-west-1'
 
 # --- DNS CONFIG ---
-PRIMARY_ALB_DNS = 'eCommAppLoadBalancer-1629063426.us-east-1.elb.amazonaws.com'
-SECONDARY_ALB_DNS = 'eCommAppLoadBalancer-Secondary-2144717324.us-west-1.elb.amazonaws.com'
-HOSTED_ZONE_ID = 'Z00780922145L3VLDJ1AQ'
-RECORD_NAME = 'OnlineBookStore.ecommappdomains.com.'
+PRIMARY_ALB_DNS = os.getenv('PRIMARY_ALB_DNS')
+SECONDARY_ALB_DNS = os.getenv('SECONDARY_ALB_DNS')
+HOSTED_ZONE_ID = os.getenv('HOSTED_ZONE_ID')
+RECORD_NAME = os.getenv('RECORD_NAME')
 
 # --- RESOURCE IDENTIFIERS ---
-PRIMARY_RDS_IDENTIFIER = 'ecommappdbprimary'
-PRIMARY_ASG_NAME = 'ECommAppEC2ASG'
-PRIMARY_S3_NAME = 'ecommerce-product-images-primary'
-PRIMARY_ALB_ARN = 'arn:aws:elasticloadbalancing:us-east-1:343218219620:loadbalancer/app/eCommAppLoadBalancer/04a47aff26647f64'
-PRIMARY_TARGET_GROUP_ARN = 'arn:aws:elasticloadbalancing:us-east-1:343218219620:targetgroup/ECommAppALBtargetGrp/c36647b6f18d14db'
+PRIMARY_RDS_IDENTIFIER = os.getenv('PRIMARY_RDS_IDENTIFIER')
+PRIMARY_ASG_NAME = os.getenv('PRIMARY_ASG_NAME')
+PRIMARY_S3_NAME = os.getenv('PRIMARY_S3_NAME')
+PRIMARY_ALB_ARN = os.getenv('PRIMARY_ALB_ARN')
+PRIMARY_TARGET_GROUP_ARN = os.getenv('PRIMARY_TARGET_GROUP_ARN')
 
 # Store timestamps in memory (temporary - per Lambda run)
 failover_timestamp = None
@@ -24,9 +25,9 @@ failover_timestamp = None
 def lambda_handler(event, context):
     global failover_timestamp
 
-    print("🔁 Lambda triggered.")
+    print("Lambda triggered.")
     current_target = get_current_alb_target()
-    print(f"🔍 Current ALB target: {current_target}")
+    print(f" Current ALB target: {current_target}")
 
     any_failure = (
         not check_rds(PRIMARY_REGION) or
